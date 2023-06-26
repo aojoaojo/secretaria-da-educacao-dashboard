@@ -7,35 +7,26 @@ import dash_bootstrap_components as dbc
 import plotly.graph_objects as go
 
 
-# Inicializando app
+# Inicializando app OK
 app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
 
-# Mudando as cores
+# Mudando as cores OK
 colors = {
     'background': '#111111',
     'text': '#FFFFFF'
 }
 
-#importando dados
+#importando dados OK
 caminho_arquivo = "sedfevasao.csv"
 dados = pd.read_csv(caminho_arquivo, sep=";")
 data = pd.read_csv('CoordenadasEscolas2.csv')
 
-#limpando dados
+#limpando dados OK
 dadosLimpos = dados[dados['turma'].isna() == False]
 dadosLimpos['coordenacao_regional'] = dadosLimpos['coordenacao_regional'].str[6:]
 pd.DataFrame(dadosLimpos)
 
-
-#dados.info()
-#linhas_vazias = dados[dados['cod_turma'].isnull()]
-
-# Há 41645 linhas com valores faltantes, no entanto, para a criação do dashboard,
-# esses valores não são tão relevantes. Portanto, prefere-se nesse caso,
-# continuar com as linhas com os valores 
-# faltantes, não realizando um "dados = dados.drop(linhas_vazias,index)"
-
-# mapa inicio
+# mapa OK
 
 df = pd.DataFrame(data ,columns=["0","1","2"])
 
@@ -50,42 +41,75 @@ fig.add_trace(go.Scattermapbox(
 ))
 fig.update_layout(margin ={'l':0,'t':0,'b':0,'r':0},
                   mapbox = {
-                      'zoom': 9.8,
+                      'zoom': 9.4,
                       'center':{"lat": -15.793845, "lon": -47.882740},
-                      'style': "open-street-map"}
-                  )
+                      'style': "open-street-map"},
+                  width=600,
+                  height=400)
 
-# mapa fim
+# gráfico pizza situação alunos todas escolas OK com botão dropdown na frente do título
 
-# gráfico pizza situação alunos todas escolas inicio
+fig2 = px.pie(dadosLimpos, "situacao", title = 'Situação dos Alunos por Escola')
 
-fig2 = px.pie(dadosLimpos, "situacao")
-
-# gráfico pizza situação alunos todas escolas fim
-
-# botão dropdown inicio
+# botão dropdown OK
 
 listaDropdown = list(dadosLimpos['escola'].unique())
 listaDropdown.append("Todas as Escolas")
 
-# botão dropdown fim
+# Número de Alunos por região OK
 
-# Número de Alunos por região inicio
+dadosLimpos['cod_aluno'] = pd.to_numeric(dadosLimpos['cod_aluno'], errors='coerce')
+students_by_region = dadosLimpos.groupby('coordenacao_regional')['cod_aluno'].count().reset_index(name='num_alunos')
+fig3 = px.bar(students_by_region, x='coordenacao_regional', y='num_alunos', title='Número de Alunos por Região DF', color='coordenacao_regional', labels={
+                     "coordenacao_regional": "Regiões (DF)",
+                     "num_alunos": "Número de Alunos"
+                 },)
+fig3.update_layout(showlegend=False)
 
-fig3 = px.histogram(dadosLimpos, x = 'coordenacao_regional', color = 'coordenacao_regional', title = 'Número de Alunos por Região', labels = {'coordenacao_regional': 'Regiões do DF', 'count': 'Número de Alunos'})
+# Restaurar dadosLimpos OK
 
-# Número de Alunos por região fim
+dadosLimpos = dados[dados['turma'].isna() == False]
+dadosLimpos['coordenacao_regional'] = dadosLimpos['coordenacao_regional'].str[6:]
+pd.DataFrame(dadosLimpos)
 
-# Número de Escolas por região início
+# Número de Escolas por região OK
 
-escolas_por_regiao = dadosLimpos.groupby('coordenacao_regional')['escola'].count().reset_index()
-escolas_por_regiao.columns = ['coordenacao_regional', 'quantidade']
+schools_by_region = dadosLimpos.groupby('coordenacao_regional')['cod_escola'].nunique().reset_index(name='num_escolas')
 
-fig4 = dadosLimpos.groupby('escola')['coordenacao_regional'].max().reset_index().value_counts("coordenacao_regional").plot.barh()
+fig4 = px.bar(schools_by_region, x='coordenacao_regional', y='num_escolas', title='Número de Escolas por Região DF', color = 'coordenacao_regional', labels={
+                     "coordenacao_regional": "Regiões (DF)",
+                     "num_escolas": "Número de Escolas"
+                 },)
+fig4.update_layout(showlegend=False)
 
-## antiga fig4 px.histogram(escolas_por_regiao, x = 'coordenacao_regional', y = 'quantidade', color = 'coordenacao_regional', title = 'Número de Escolas por Região (errado)')
+# Região mais reprovados OK
 
-# Número de escolas por região fim
+regiaoMaisReprovados = dadosLimpos[dadosLimpos['situacao'] == 'reprovado']
+
+fig5 = px.histogram(regiaoMaisReprovados, 'coordenacao_regional', color = 'coordenacao_regional', title = 'Alunos reprovados por região', labels={
+                     "coordenacao_regional": "Regiões (DF)"
+                 },)
+fig5.update_layout(showlegend=False, yaxis_title="Alunos Reprovados")
+
+# Porcentagem de reprovação por região OK
+
+todosAlunos = dadosLimpos.groupby('coordenacao_regional').count()['cod_aluno']
+alunosReprovados = regiaoMaisReprovados.groupby('coordenacao_regional').count()['cod_aluno']
+porcentagemReprovacao =  (alunosReprovados * 100) / todosAlunos
+df6 = pd.DataFrame({'regiao': porcentagemReprovacao.index, 'porcentagem': porcentagemReprovacao.values})
+fig6 = px.histogram(df6, x='regiao', y='porcentagem', color = 'porcentagem', title = 'Porcentagem de reprovação por região').update_xaxes(categoryorder='total descending')
+fig6.update_layout(showlegend=False, xaxis_title="Regiões (DF)", yaxis_title="Porcentagem de Reprovados")
+
+# Média de alunos por escola OK
+
+todosAlunos = dadosLimpos.groupby('coordenacao_regional').count()['cod_aluno']
+escolasPorRegiao = dadosLimpos.groupby('coordenacao_regional')['cod_escola'].nunique()
+mediaAlunoEscola = todosAlunos/escolasPorRegiao
+df7 = pd.DataFrame({'regiao': mediaAlunoEscola.index, 'mediaAlunosEscola': mediaAlunoEscola.values})
+fig7 = px.histogram(df7, 'regiao', 'mediaAlunosEscola', color = 'mediaAlunosEscola', title = 'Média de Alunos por Escola por Região').update_xaxes(categoryorder='total descending')
+fig7.update_layout(showlegend=False, xaxis_title="Regiões (DF)", yaxis_title="Média de Alunos por Escola")
+
+# Aplicação OK
 
 app.layout = dbc.Container([
     dbc.Row([
@@ -106,12 +130,6 @@ app.layout = dbc.Container([
         
         dbc.Col([
             dcc.Graph(
-            id='mapa',
-            figure=fig
-        )], width=6),
-        
-        dbc.Col([
-            dcc.Graph(
             id='numAlunosRegiao',
             figure=fig3
         )], width=6),
@@ -120,7 +138,31 @@ app.layout = dbc.Container([
             dcc.Graph(
             id='numEscolasRegiao',
             figure=fig4
-        )], width=6)
+        )], width=6),
+        
+        dbc.Col([
+            dcc.Graph(
+            id='mapa',
+            figure=fig
+        )], width=6),
+        
+        dbc.Col([
+            dcc.Graph(
+            id='RegiaoMaisReprovados',
+            figure=fig5
+        )], width=12),
+        
+        dbc.Col([
+            dcc.Graph(
+            id='MediaAlunosEscola',
+            figure=fig7
+        )], width=6),
+        
+        dbc.Col([
+            dcc.Graph(
+            id='ReprovacaoPorRegiao',
+            figure=fig6
+        )], width=6),
         
     ])
 ])
