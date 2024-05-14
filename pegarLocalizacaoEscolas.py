@@ -2,7 +2,7 @@ import requests
 from ast import literal_eval
 import pandas as pd
 
-dados = pd.read_csv("/sedfevasao.csv", sep= ';')
+dados = pd.read_csv("sedfevasao.csv", sep= ';')
 dadosLimpos = dados[dados['turma'].isna() == False]
 pd.DataFrame(dadosLimpos)
 
