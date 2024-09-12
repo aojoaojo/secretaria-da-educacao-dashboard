@@ -5,9 +5,9 @@ Para instalar o projeto, siga estas etapas:
 No linux, abra o terminal e execute os seguintes comandos:
 
 ```sh
-git clone https://github.com/aojoaojo/Dashboard_SEDFevasao
+git clone https://github.com/aojoaojo/secretaria-da-educacao-dashboard
 
-cd Dashboard_SEDFevasao
+cd secretaria-da-educacao-dashboard
 
 pip install -r requirements.txt
 
